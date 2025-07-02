@@ -1,4 +1,3 @@
-streamlet
 yfinance
-pandas
+
 
