@@ -2,11 +2,7 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 
-<<<<<<< HEAD
-st.title("Personal Share Portfolio Tracker")
-=======
 st.title("Personal Portfolio Tracker (All values in GBP)")
->>>>>>> 64fd37a0e60422b29a8ac9eb0f37c6ae68531aee
 
 # Helper: get fx rate from any currency to GBP
 def get_fx_rate_to_gbp(from_currency):
