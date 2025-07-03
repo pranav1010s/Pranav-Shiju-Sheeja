@@ -85,13 +85,13 @@ if selected_portfolio:
     )
 
     # Option to delete selected rows
-    st.markdown("### 🗑️ Delete Rows")
-    rows_to_delete = st.multiselect("Select rows to delete (by index)", options=edited_df.index.tolist())
-    if st.button("Delete Selected Rows"):
-        edited_df = edited_df.drop(index=rows_to_delete).reset_index(drop=True)
-        st.experimental_rerun()
-else:
-    edited_df = pd.DataFrame(columns=["Ticker", "Shares", "Buy Price"])
+    #st.markdown("### 🗑️ Delete Rows")
+    #rows_to_delete = st.multiselect("Select rows to delete (by index)", options=edited_df.index.tolist())
+    #if st.button("Delete Selected Rows"):
+     #   edited_df = edited_df.drop(index=rows_to_delete).reset_index(drop=True)
+      #  st.experimental_rerun()
+#else:
+ #   edited_df = pd.DataFrame(columns=["Ticker", "Shares", "Buy Price"])
 
 # Save portfolio
 if st.button("💾 Save Portfolio") and selected_portfolio:
