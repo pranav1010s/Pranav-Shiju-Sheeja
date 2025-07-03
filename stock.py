@@ -144,7 +144,6 @@ if 'edited_df' in locals() and not edited_df.empty:
             if hist.empty:
                 st.warning(f"No historical data for {ticker}. Skipping 52-week stats.")
                 continue
-            
                     high_52wk = hist["Close"].max()
                     low_52wk = hist["Close"].min()
                     avg_52wk = hist["Close"].mean()
