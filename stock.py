@@ -61,22 +61,33 @@ if selected_portfolio:
         st.warning("Failed to load portfolio.")
         portfolio_data = {}
 
-    # ✅ Always show editable table
+    # Editable table with correct column types
     df_preview = pd.DataFrame({
         "Ticker": portfolio_data.get("tickers", []),
         "Shares": portfolio_data.get("shares", []),
         "Buy Price": portfolio_data.get("buy_prices", [])
     })
-    edited_df = st.data_editor(df_preview, num_rows="dynamic")
+
+    edited_df = st.data_editor(
+        df_preview,
+        num_rows="dynamic",
+        column_config={
+            "Ticker": st.column_config.TextColumn("Ticker"),
+            "Shares": st.column_config.NumberColumn("Shares"),
+            "Buy Price": st.column_config.NumberColumn("Buy Price")
+        },
+        use_container_width=True
+    )
 else:
     edited_df = pd.DataFrame(columns=["Ticker", "Shares", "Buy Price"])
 
 # Save portfolio
 if st.button("💾 Save Portfolio") and selected_portfolio:
     try:
-        tickers = edited_df["Ticker"].dropna().astype(str).str.upper().tolist()
-        shares = edited_df["Shares"].dropna().astype(float).tolist()
-        buy_prices = edited_df["Buy Price"].dropna().astype(float).tolist()
+        edited_df = edited_df.dropna(subset=["Ticker", "Shares", "Buy Price"])
+        tickers = edited_df["Ticker"].astype(str).str.upper().tolist()
+        shares = edited_df["Shares"].astype(float).tolist()
+        buy_prices = edited_df["Buy Price"].astype(float).tolist()
         if len(tickers) == len(shares) == len(buy_prices):
             portfolio_data = {
                 "tickers": tickers,
@@ -93,9 +104,10 @@ if st.button("💾 Save Portfolio") and selected_portfolio:
 
 # Portfolio analysis
 if 'edited_df' in locals() and not edited_df.empty:
-    tickers = edited_df["Ticker"].dropna().astype(str).str.upper().tolist()
-    shares = edited_df["Shares"].dropna().astype(float).tolist()
-    buy_prices_gbp = edited_df["Buy Price"].dropna().astype(float).tolist()
+    edited_df = edited_df.dropna(subset=["Ticker", "Shares", "Buy Price"])
+    tickers = edited_df["Ticker"].astype(str).str.upper().tolist()
+    shares = edited_df["Shares"].astype(float).tolist()
+    buy_prices_gbp = edited_df["Buy Price"].astype(float).tolist()
 
     if len(shares) != len(tickers) or len(buy_prices_gbp) != len(tickers):
         st.error("The number of shares and buy prices must match the number of tickers.")
