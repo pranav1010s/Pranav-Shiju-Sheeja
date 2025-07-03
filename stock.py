@@ -57,16 +57,17 @@ if selected_portfolio:
         with open(os.path.join(PORTFOLIO_DIR, f"{selected_portfolio}.json")) as f:
             portfolio_data = json.load(f)
         st.info(f"Loaded portfolio: **{selected_portfolio}**")
-        if portfolio_data:
-            st.write("### Current Portfolio Contents")
-            df_preview = pd.DataFrame({
-                "Ticker": portfolio_data.get("tickers", []),
-                "Shares": portfolio_data.get("shares", []),
-                "Buy Price": portfolio_data.get("buy_prices", [])
-            })
-            edited_df = st.data_editor(df_preview, num_rows="dynamic")
     except Exception:
         st.warning("Failed to load portfolio.")
+        portfolio_data = {}
+
+    # ✅ Always show editable table
+    df_preview = pd.DataFrame({
+        "Ticker": portfolio_data.get("tickers", []),
+        "Shares": portfolio_data.get("shares", []),
+        "Buy Price": portfolio_data.get("buy_prices", [])
+    })
+    edited_df = st.data_editor(df_preview, num_rows="dynamic")
 else:
     edited_df = pd.DataFrame(columns=["Ticker", "Shares", "Buy Price"])
 
@@ -107,8 +108,7 @@ if 'edited_df' in locals() and not edited_df.empty:
 
     for ticker, qty, buy_price_gbp in zip(tickers, shares, buy_prices_gbp):
         try:
-            ticker_data = yf.Ticker(ticker)
-            info = ticker_data.info
+            info = yf.Ticker(ticker).info
             current_price_raw = info.get('regularMarketPrice')
             currency = info.get('currency', 'GBP')
             exchange = info.get('exchange', '')
