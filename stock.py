@@ -7,7 +7,7 @@ import plotly.express as px
 
 st.set_page_config(page_title="Portfolio Tracker", layout="wide")
 st.title("📈 Personal Share Portfolio Tracker")
-st.markdown("### Created by Pranav S S")
+st.markdown("### Created by Pranav")
 
 # Directory to store portfolios
 PORTFOLIO_DIR = "portfolios"
