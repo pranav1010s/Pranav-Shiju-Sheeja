@@ -116,13 +116,11 @@ if 'edited_df' in locals() and not edited_df.empty:
 if len(shares) != len(tickers) or len(buy_prices_gbp) != len(tickers):
     st.error("The number of shares and buy prices must match the number of tickers.")
     st.stop()
-
-    
-            current_price_raw = info.get('regularMarketPrice')
-            currency = info.get('currency', 'GBP')
-            exchange = info.get('exchange', '')
-            sector = info.get('sector', 'Unknown')
-            dividend_yield = info.get('dividendYield', 0.0)
+         current_price_raw = info.get('regularMarketPrice')
+         currency = info.get('currency', 'GBP')
+         exchange = info.get('exchange', '')
+         sector = info.get('sector', 'Unknown')
+         dividend_yield = info.get('dividendYield', 0.0)
 
             if current_price_raw is None:
                 st.warning(f"No current price found for {ticker}. Skipping.")
