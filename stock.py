@@ -139,20 +139,18 @@ if 'edited_df' in locals() and not edited_df.empty:
             sector = info.get('sector', 'Unknown')
             dividend_yield = info.get('dividendYield', 0.0)
             
-            # Get 1-year historical data
-           hist = yf.Ticker(ticker).history(period="1y")
-               if hist.empty or "Close" not in hist:
-                    high_52wk = low_52wk = avg_52wk = "N/A"
-               else:
-                   high_52wk = hist["Close"].max()
-                   low_52wk = hist["Close"].min()
-                   avg_52wk = hist["Close"].mean()
+         # Get 1-year historical data
+        hist = yf.Ticker(ticker).history(period="1y")
+        if hist.empty or "Close" not in hist:
+            high_52wk = low_52wk = avg_52wk = "N/A"
+        else:
+            high_52wk = hist["Close"].max()
+            low_52wk = hist["Close"].min()
+            avg_52wk = hist["Close"].mean()
 
-
-
-            if current_price_raw is None:
-                st.warning(f"No current price found for {ticker}. Skipping.")
-                continue
+        if current_price_raw is None:
+            st.warning(f"No current price found for {ticker}. Skipping.")
+            continue
 
             current_price_native = current_price_raw / 100.0 if exchange == "LSE" else current_price_raw
             fx_rate = get_fx_rate_to_gbp(currency)
