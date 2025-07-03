@@ -161,7 +161,7 @@ if 'edited_df' in locals() and not edited_df.empty:
                 "Current Price (GBP)": current_price_gbp,
                 "Currency": currency,
                 "Value (GBP)": value_gbp,
-                "Cost Basis (GBP)": cost_gbp,
+                #"Cost Basis (GBP)": cost_gbp,
                 "Return (%)": returns,
                 "P/E Ratio": pe_ratio if pe_ratio is not None else "N/A",
                 "Analyst Rating": analyst_rating,
@@ -186,7 +186,7 @@ if 'edited_df' in locals() and not edited_df.empty:
         df_display["Current Price (native)"] = df_display["Current Price (native)"].map("${:.2f}".format)
         df_display["Current Price (GBP)"] = df_display["Current Price (GBP)"].map("£{:.2f}".format)
         df_display["Value (GBP)"] = df_display["Value (GBP)"].map("£{:.2f}".format)
-        df_display["Cost Basis (GBP)"] = df_display["Cost Basis (GBP)"].map("£{:.2f}".format)
+        #df_display["Cost Basis (GBP)"] = df_display["Cost Basis (GBP)"].map("£{:.2f}".format)
         df_display["Return (%)"] = df_display["Return (%)"].map("{:.2f}%".format)
         df_display["P/E Ratio"] = df_display["P/E Ratio"].apply(lambda x: f"{x:.2f}" if isinstance(x, (float, int)) else x)
         #df_display["Dividend Yield (%)"] = df_display["Dividend Yield (%)"].map("{:.2f}%".format)
