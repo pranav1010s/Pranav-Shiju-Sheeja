@@ -55,6 +55,16 @@ if selected_portfolio:
     try:
         with open(os.path.join(PORTFOLIO_DIR, f"{selected_portfolio}.json")) as f:
             portfolio_data = json.load(f)
+        st.info(f"Loaded portfolio: **{selected_portfolio}**")
+        if portfolio_data:
+            st.write("### Current Portfolio Contents")
+            df_preview = pd.DataFrame({
+                "Ticker": portfolio_data.get("tickers", []),
+                "Shares": portfolio_data.get("shares", []),
+                "Buy Price (GBP)": portfolio_data.get("buy_prices", [])
+            })
+            st.dataframe(df_preview)
+            st.caption("You can edit the fields below and click 'Save Portfolio' to update it.")
     except Exception:
         st.warning("Failed to load portfolio.")
 
@@ -227,3 +237,4 @@ if tickers_input:
             combined_df.fillna(method='ffill', inplace=True)
             combined_df['Total Value GBP'] = combined_df.sum(axis=1)
             st.line_chart(combined_df['Total Value GBP'])
+
