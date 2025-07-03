@@ -140,13 +140,14 @@ if 'edited_df' in locals() and not edited_df.empty:
             dividend_yield = info.get('dividendYield', 0.0)
             
             # Get 1-year historical data
-            hist = yf.Ticker(ticker).history(period="1y")
-            if hist.empty:
-                st.warning(f"No historical data for {ticker}. Skipping 52-week stats.")
-                continue
-            high_52wk = hist["Close"].max()
-            low_52wk = hist["Close"].min()
-            avg_52wk = hist["Close"].mean()
+           hist = yf.Ticker(ticker).history(period="1y")
+           if hist.empty or "Close" not in hist:
+                high_52wk = low_52wk = avg_52wk = "N/A"
+           else:
+               high_52wk = hist["Close"].max()
+               low_52wk = hist["Close"].min()
+               avg_52wk = hist["Close"].mean()
+
 
 
             if current_price_raw is None:
@@ -217,9 +218,10 @@ if 'edited_df' in locals() and not edited_df.empty:
         df_display["Return (%)"] = df_display["Return (%)"].map("{:.2f}%".format)
         df_display["P/E Ratio"] = df_display["P/E Ratio"].apply(lambda x: f"{x:.2f}" if isinstance(x, (float, int)) else x)
         df_display["Dividend Yield (%)"] = df_display["Dividend Yield (%)"].map("{:.2f}%".format)
-        df_display["52W High"] = df_display["52W High"].map("£{:.2f}".format)
-        df_display["52W Low"] = df_display["52W Low"].map("£{:.2f}".format)
-        df_display["52W Avg"] = df_display["52W Avg"].map("£{:.2f}".format)
+        df_display["52W High"] = df_display["52W High"].apply(lambda x: f"£{x:.2f}" if isinstance(x, (float, int)) else x)
+        df_display["52W Low"] = df_display["52W Low"].apply(lambda x: f"£{x:.2f}" if isinstance(x, (float, int)) else x)
+        df_display["52W Avg"] = df_display["52W Avg"].apply(lambda x: f"£{x:.2f}" if isinstance(x, (float, int)) else x)
+
 
 
         st.subheader("📊 Portfolio Summary")
