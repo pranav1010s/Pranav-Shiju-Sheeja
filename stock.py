@@ -171,15 +171,14 @@ if 'edited_df' in locals() and not edited_df.empty:
             }
             analyst_rating = rating_map.get(analyst_rating_raw, 'N/A')
             
-                # Get 1-year historical data
-                hist = yf.Ticker(ticker).history(period="1y")
-                if hist.empty:
-                    st.warning(f"No historical data for {ticker}. Skipping 52-week stats.")
-                    continue
-                
-                high_52wk = hist["Close"].max()
-                low_52wk = hist["Close"].min()
-                avg_52wk = hist["Close"].mean()
+            # Get 1-year historical data
+            hist = yf.Ticker(ticker).history(period="1y")
+            if hist.empty:
+                st.warning(f"No historical data for {ticker}. Skipping 52-week stats.")
+                continue
+            high_52wk = hist["Close"].max()
+            low_52wk = hist["Close"].min()
+            avg_52wk = hist["Close"].mean()
 
             portfolio_data.append({
                 "Ticker": ticker,
