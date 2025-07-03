@@ -166,9 +166,9 @@ if 'edited_df' in locals() and not edited_df.empty:
                 "P/E Ratio": pe_ratio if pe_ratio is not None else "N/A",
                 "Analyst Rating": analyst_rating,
                 "Sector": sector,
-                "Dividend Yield (%)": dividend_yield * 100 if dividend_yield else 0.0,
-                "52W High": high_52wk,
-                "52W Low": low_52wk,
+                #"Dividend Yield (%)": dividend_yield * 100 if dividend_yield else 0.0,
+                #"52W High": high_52wk,
+                #"52W Low": low_52wk,
                 "52W Avg": avg_52wk
             })
 
