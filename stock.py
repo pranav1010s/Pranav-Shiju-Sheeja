@@ -109,9 +109,9 @@ else:
 
     
 if 'edited_df' in locals() and not edited_df.empty:
-    tickers = edited_df["Ticker"].dropna().astype(str).str.upper().tolist()
-    shares = edited_df["Shares"].dropna().astype(float).tolist()
-    buy_prices_gbp = edited_df["Buy Price"].dropna().astype(float).tolist()
+    tickers = edited_df["Ticker"].dropna().astype(str).str.upper().tolist()
+    shares = edited_df["Shares"].dropna().astype(float).tolist()
+    buy_prices_gbp = edited_df["Buy Price"].dropna().astype(float).tolist()
 
     if len(shares) != len(tickers) or len(buy_prices_gbp) != len(tickers):
         st.error("The number of shares and buy prices must match the number of tickers.")
