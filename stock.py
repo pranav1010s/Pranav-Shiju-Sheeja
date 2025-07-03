@@ -4,16 +4,11 @@ import pandas as pd
 import os
 import json
 import datetime
-import matplotlib.pyplot as plt
-
-# Set up page
-st.set_page_config(page_title="Advanced Portfolio Tracker", layout="wide")
-st.title("📈 Advanced Personal Share Portfolio Tracker")
+import plotly.express as px
 
 # Constants
 PORTFOLIO_DIR = "portfolios"
 WATCHLIST_FILE = "watchlist.json"
-BASE_CURRENCIES = ["GBP", "USD", "EUR", "CAD", "JPY"]
 BENCHMARK_TICKER = "^GSPC"  # S&P 500
 
 # Ensure directories exist
@@ -33,99 +28,123 @@ def get_fx_rate(from_currency, to_currency):
         return 1.0
 
 def load_portfolio(name):
-    path = os.path.join(PORTFOLIO_DIR, f"{name}.json")
-    if os.path.exists(path):
-        with open(path, "r") as f:
+    try:
+        with open(os.path.join(PORTFOLIO_DIR, f"{name}.json")) as f:
             return json.load(f)
-    return {}
+    except:
+        return {}
 
 def save_portfolio(name, data):
-    path = os.path.join(PORTFOLIO_DIR, f"{name}.json")
-    with open(path, "w") as f:
+    with open(os.path.join(PORTFOLIO_DIR, f"{name}.json"), "w") as f:
         json.dump(data, f)
 
 def delete_portfolio(name):
-    path = os.path.join(PORTFOLIO_DIR, f"{name}.json")
-    if os.path.exists(path):
-        os.remove(path)
+    os.remove(os.path.join(PORTFOLIO_DIR, f"{name}.json"))
 
 def rename_portfolio(old_name, new_name):
-    old_path = os.path.join(PORTFOLIO_DIR, f"{old_name}.json")
-    new_path = os.path.join(PORTFOLIO_DIR, f"{new_name}.json")
-    if os.path.exists(old_path) and not os.path.exists(new_path):
-        os.rename(old_path, new_path)
+    os.rename(os.path.join(PORTFOLIO_DIR, f"{old_name}.json"),
+              os.path.join(PORTFOLIO_DIR, f"{new_name}.json"))
 
 def get_portfolio_names():
     return [f.replace(".json", "") for f in os.listdir(PORTFOLIO_DIR) if f.endswith(".json")]
 
-def load_watchlist():
-    if os.path.exists(WATCHLIST_FILE):
-        with open(WATCHLIST_FILE, "r") as f:
-            return json.load(f)
-    return []
+def get_sector_allocation(tickers, shares):
+    sectors = {}
+    for ticker, qty in zip(tickers, shares):
+        try:
+            info = yf.Ticker(ticker).info
+            sector = info.get("sector", "Unknown")
+            price = info.get("regularMarketPrice", 0)
+            value = price * qty
+            sectors[sector] = sectors.get(sector, 0) + value
+        except:
+            continue
+    return sectors
 
-def save_watchlist(watchlist):
-    with open(WATCHLIST_FILE, "w") as f:
-        json.dump(watchlist, f)
+def get_dividend_yield(ticker):
+    try:
+        info = yf.Ticker(ticker).info
+        return info.get("dividendYield", 0.0)
+    except:
+        return 0.0
 
-# Sidebar - Portfolio Manager
+def get_sentiment(ticker):
+    try:
+        news = yf.Ticker(ticker).news
+        if not news:
+            return "Neutral"
+        headlines = [item['title'] for item in news[:5]]
+        positive = sum("up" in h.lower() or "gain" in h.lower() for h in headlines)
+        negative = sum("down" in h.lower() or "loss" in h.lower() for h in headlines)
+        if positive > negative:
+            return "Positive"
+        elif negative > positive:
+            return "Negative"
+        else:
+            return "Neutral"
+    except:
+        return "Neutral"
+
+# Streamlit UI
+st.set_page_config(page_title="Portfolio Tracker", layout="wide")
+st.title("📈 Personal Share Portfolio Tracker")
+
+# Sidebar: Portfolio Manager
 st.sidebar.header("📁 Portfolio Manager")
 portfolio_names = get_portfolio_names()
 selected_portfolio = st.sidebar.selectbox("Select Portfolio", [""] + portfolio_names)
 new_portfolio_name = st.sidebar.text_input("Create New Portfolio")
+
 if st.sidebar.button("Create Portfolio") and new_portfolio_name:
     if new_portfolio_name not in portfolio_names:
-        save_portfolio(new_portfolio_name, {"base_currency": "GBP", "stocks": []})
-        st.sidebar.success(f"Portfolio '{new_portfolio_name}' created.")
+        save_portfolio(new_portfolio_name, {})
+        st.success(f"Portfolio '{new_portfolio_name}' created.")
     else:
-        st.sidebar.warning("Portfolio already exists.")
+        st.warning("Portfolio already exists.")
 
 if selected_portfolio:
     if st.sidebar.button("Delete Portfolio"):
         delete_portfolio(selected_portfolio)
-        st.sidebar.success(f"Portfolio '{selected_portfolio}' deleted.")
+        st.success(f"Portfolio '{selected_portfolio}' deleted.")
         st.experimental_rerun()
 
     rename_to = st.sidebar.text_input("Rename Portfolio")
     if st.sidebar.button("Rename") and rename_to:
         rename_portfolio(selected_portfolio, rename_to)
-        st.sidebar.success(f"Portfolio renamed to '{rename_to}'.")
+        st.success(f"Portfolio renamed to '{rename_to}'")
         st.experimental_rerun()
 
-# Load selected portfolio
-portfolio_data = {}
-if selected_portfolio:
-    portfolio_data = load_portfolio(selected_portfolio)
-
 # Base currency selection
-base_currency = st.selectbox("Select Base Currency", BASE_CURRENCIES, index=BASE_CURRENCIES.index(portfolio_data.get("base_currency", "GBP")))
-portfolio_data["base_currency"] = base_currency
+base_currency = st.sidebar.selectbox("Base Currency", ["GBP", "USD", "EUR", "CAD", "JPY"])
 
-# Editable stock table
-st.subheader("📋 Portfolio Stocks")
-stocks_df = pd.DataFrame(portfolio_data.get("stocks", []))
-if stocks_df.empty:
-    stocks_df = pd.DataFrame(columns=["Ticker", "Shares", "Buy Price (Base)"])
-edited_df = st.data_editor(stocks_df, num_rows="dynamic", use_container_width=True)
-portfolio_data["stocks"] = edited_df.dropna().to_dict(orient="records")
+# Load portfolio
+portfolio_data = load_portfolio(selected_portfolio) if selected_portfolio else {}
+df_editor = pd.DataFrame(portfolio_data) if portfolio_data else pd.DataFrame(columns=["Ticker", "Shares", "Buy Price"])
 
-# Save portfolio
+st.subheader("📋 Edit Portfolio")
+edited_df = st.data_editor(df_editor, num_rows="dynamic", key="portfolio_editor")
+
 if selected_portfolio and st.button("💾 Save Portfolio"):
-    save_portfolio(selected_portfolio, portfolio_data)
+    save_portfolio(selected_portfolio, edited_df.to_dict(orient="list"))
     st.success("Portfolio saved.")
+
+# Export to CSV
+if not edited_df.empty:
+    csv = edited_df.to_csv(index=False).encode("utf-8")
+    st.download_button("⬇️ Export Portfolio to CSV", csv, "portfolio.csv", "text/csv")
 
 # Portfolio Analysis
 if not edited_df.empty:
     st.subheader("📊 Portfolio Analysis")
-    analysis_data = []
+    tickers = edited_df["Ticker"].tolist()
+    shares = edited_df["Shares"].tolist()
+    buy_prices = edited_df["Buy Price"].tolist()
+
+    analysis = []
     total_value = 0
     total_cost = 0
-    sector_allocation = {}
 
-    for row in portfolio_data["stocks"]:
-        ticker = row["Ticker"].strip().upper()
-        shares = float(row["Shares"])
-        buy_price = float(row["Buy Price (Base)"])
+    for ticker, qty, buy_price in zip(tickers, shares, buy_prices):
         try:
             stock = yf.Ticker(ticker)
             info = stock.info
@@ -133,100 +152,91 @@ if not edited_df.empty:
             currency = info.get("currency", base_currency)
             fx_rate = get_fx_rate(currency, base_currency)
             price_base = price * fx_rate
-            value = price_base * shares
-            cost = buy_price * shares
-            returns = (price_base - buy_price) / buy_price * 100 if buy_price > 0 else 0
-            dividend_yield = info.get("dividendYield", 0) or 0
-            sector = info.get("sector", "Unknown")
-            sector_allocation[sector] = sector_allocation.get(sector, 0) + value
+            value = price_base * qty
+            cost = buy_price * qty
+            ret = (price_base - buy_price) / buy_price * 100 if buy_price else 0
+            dividend = get_dividend_yield(ticker)
+            sentiment = get_sentiment(ticker)
 
-            analysis_data.append({
+            analysis.append({
                 "Ticker": ticker,
-                "Shares": shares,
+                "Shares": qty,
                 "Buy Price": buy_price,
                 "Current Price": round(price_base, 2),
                 "Value": round(value, 2),
-                "Return (%)": round(returns, 2),
-                "Dividend Yield": f"{dividend_yield*100:.2f}%",
-                "Sector": sector
+                "Cost": round(cost, 2),
+                "Return (%)": round(ret, 2),
+                "Dividend Yield": f"{dividend*100:.2f}%",
+                "Sentiment": sentiment
             })
+
             total_value += value
             total_cost += cost
-        except Exception as e:
-            st.warning(f"Error fetching data for {ticker}: {e}")
+        except:
+            continue
 
-    df_analysis = pd.DataFrame(analysis_data)
-    st.dataframe(df_analysis, use_container_width=True)
-    st.write(f"**Total Value ({base_currency})**: {total_value:.2f}")
-    st.write(f"**Total Cost ({base_currency})**: {total_cost:.2f}")
-    st.write(f"**Total Return (%)**: {((total_value - total_cost) / total_cost * 100):.2f}" if total_cost > 0 else "N/A")
+    df_analysis = pd.DataFrame(analysis)
+    st.dataframe(df_analysis)
 
-    # Sector Allocation Pie Chart
+    total_return = (total_value - total_cost) / total_cost * 100 if total_cost else 0
+    st.metric("Total Portfolio Value", f"{base_currency} {total_value:,.2f}")
+    st.metric("Total Cost Basis", f"{base_currency} {total_cost:,.2f}")
+    st.metric("Overall Return", f"{total_return:.2f}%")
+
+    # Sector Allocation
     st.subheader("📌 Sector Allocation")
-    if sector_allocation:
-        fig, ax = plt.subplots()
-        ax.pie(sector_allocation.values(), labels=sector_allocation.keys(), autopct='%1.1f%%')
-        ax.axis("equal")
-        st.pyplot(fig)
+    sectors = get_sector_allocation(tickers, shares)
+    if sectors:
+        sector_df = pd.DataFrame(list(sectors.items()), columns=["Sector", "Value"])
+        fig = px.pie(sector_df, names="Sector", values="Value", title="Sector Allocation")
+        st.plotly_chart(fig)
 
     # Benchmark Comparison
     st.subheader("📈 Benchmark Comparison (S&P 500)")
     try:
-        benchmark = yf.Ticker(BENCHMARK_TICKER).history(period="1mo")["Close"]
-        portfolio_hist = pd.Series(index=benchmark.index, dtype=float)
-        for row in portfolio_data["stocks"]:
-            ticker = row["Ticker"].strip().upper()
-            shares = float(row["Shares"])
-            stock = yf.Ticker(ticker)
-            hist = stock.history(period="1mo")["Close"]
-            info = stock.info
-            currency = info.get("currency", base_currency)
-            fx_rate = get_fx_rate(currency, base_currency)
-            hist_base = hist * fx_rate * shares
-            portfolio_hist = portfolio_hist.add(hist_base, fill_value=0)
-        combined = pd.DataFrame({
-            "Portfolio": portfolio_hist,
-            "S&P 500": benchmark / benchmark.iloc[0] * portfolio_hist.iloc[0]
-        })
-        st.line_chart(combined)
-    except Exception as e:
-        st.warning(f"Benchmark comparison failed: {e}")
+        combined_df = pd.DataFrame()
+        for ticker, qty in zip(tickers, shares):
+            hist = yf.Ticker(ticker).history(period="1mo")[["Close"]]
+            if hist.empty:
+                continue
+            hist = hist.rename(columns={"Close": ticker})
+            hist[ticker] = hist[ticker] * qty
+            combined_df = combined_df.join(hist, how="outer") if not combined_df.empty else hist
 
-    # Export to CSV
-    st.download_button("📤 Export Portfolio to CSV", df_analysis.to_csv(index=False), file_name="portfolio.csv")
+        if not combined_df.empty:
+            combined_df.fillna(method="ffill", inplace=True)
+            combined_df["Portfolio"] = combined_df.sum(axis=1)
+
+            benchmark = yf.Ticker(BENCHMARK_TICKER).history(period="1mo")[["Close"]]
+            benchmark = benchmark.rename(columns={"Close": "S&P 500"})
+            combined_df = combined_df.join(benchmark, how="outer")
+            combined_df.fillna(method="ffill", inplace=True)
+
+            st.line_chart(combined_df[["Portfolio", "S&P 500"]])
+    except:
+        st.warning("Benchmark data unavailable.")
 
 # Watchlist
 st.sidebar.subheader("👀 Watchlist")
-watchlist = load_watchlist()
-new_watch = st.sidebar.text_input("Add Ticker to Watchlist")
-if st.sidebar.button("Add to Watchlist") and new_watch:
-    if new_watch.upper() not in watchlist:
-        watchlist.append(new_watch.upper())
-        save_watchlist(watchlist)
-if st.sidebar.button("Clear Watchlist"):
-    watchlist = []
-    save_watchlist(watchlist)
+watchlist = []
+if os.path.exists(WATCHLIST_FILE):
+    with open(WATCHLIST_FILE) as f:
+        watchlist = json.load(f)
+
+new_watch = st.sidebar.text_input("Add to Watchlist")
+if st.sidebar.button("Add"):
+    if new_watch and new_watch not in watchlist:
+        watchlist.append(new_watch)
+        with open(WATCHLIST_FILE, "w") as f:
+            json.dump(watchlist, f)
 
 if watchlist:
-    st.sidebar.write("### Watchlist Prices")
+    st.sidebar.write("Your Watchlist:")
     for ticker in watchlist:
         try:
-            price = yf.Ticker(ticker).info.get("regularMarketPrice", "N/A")
+            info = yf.Ticker(ticker).info
+            price = info.get("regularMarketPrice", "N/A")
             st.sidebar.write(f"{ticker}: {price}")
         except:
-            st.sidebar.write(f"{ticker}: Error")
-
-# Sentiment Analysis (News Headlines)
-st.subheader("📰 Sentiment Analysis (News Headlines)")
-for row in portfolio_data.get("stocks", []):
-    ticker = row["Ticker"].strip().upper()
-    st.write(f"**{ticker} News**")
-    try:
-        news = yf.Ticker(ticker).news[:3]
-        for item in news:
-            st.markdown(f"- [{item['title']}]({item['link']})")
-    except:
-        st.write("No news available.")
-
-
+            st.sidebar.write(f"{ticker}: N/A")
 
