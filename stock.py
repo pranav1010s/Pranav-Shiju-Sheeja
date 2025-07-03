@@ -114,8 +114,8 @@ if 'edited_df' in locals() and not edited_df.empty:
     buy_prices_gbp = edited_df["Buy Price"].dropna().astype(float).tolist()
 
 if len(shares) != len(tickers) or len(buy_prices_gbp) != len(tickers):
-        st.error("The number of shares and buy prices must match the number of tickers.")
-        st.stop()
+    st.error("The number of shares and buy prices must match the number of tickers.")
+    st.stop()
 
     
             current_price_raw = info.get('regularMarketPrice')
