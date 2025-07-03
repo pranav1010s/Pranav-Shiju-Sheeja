@@ -90,6 +90,7 @@ if st.button("💾 Save Portfolio") and selected_portfolio:
     except Exception as e:
         st.error(f"Error saving portfolio: {e}")
 
+# Portfolio analysis
 if 'edited_df' in locals() and not edited_df.empty:
     tickers = edited_df["Ticker"].dropna().astype(str).str.upper().tolist()
     shares = edited_df["Shares"].dropna().astype(float).tolist()
@@ -98,47 +99,32 @@ if 'edited_df' in locals() and not edited_df.empty:
     if len(shares) != len(tickers) or len(buy_prices_gbp) != len(tickers):
         st.error("The number of shares and buy prices must match the number of tickers.")
         st.stop()
-else:
-    st.warning("No data available. Please upload or input your portfolio.")
-
 
     portfolio_data = []
     total_value_gbp = 0
     total_cost_gbp = 0
     sector_allocation = {}
 
-    
-if 'edited_df' in locals() and not edited_df.empty:
-    tickers = edited_df["Ticker"].dropna().astype(str).str.upper().tolist()
-    shares = edited_df["Shares"].dropna().astype(float).tolist()
-    buy_prices_gbp = edited_df["Buy Price"].dropna().astype(float).tolist()
-
-if len(shares) != len(tickers) or len(buy_prices_gbp) != len(tickers):
-    st.error("The number of shares and buy prices must match the number of tickers.")
-    st.stop()
-         current_price_raw = info.get('regularMarketPrice')
-         currency = info.get('currency', 'GBP')
-         exchange = info.get('exchange', '')
-         sector = info.get('sector', 'Unknown')
-         dividend_yield = info.get('dividendYield', 0.0)
+    for ticker, qty, buy_price_gbp in zip(tickers, shares, buy_prices_gbp):
+        try:
+            ticker_data = yf.Ticker(ticker)
+            info = ticker_data.info
+            current_price_raw = info.get('regularMarketPrice')
+            currency = info.get('currency', 'GBP')
+            exchange = info.get('exchange', '')
+            sector = info.get('sector', 'Unknown')
+            dividend_yield = info.get('dividendYield', 0.0)
 
             if current_price_raw is None:
                 st.warning(f"No current price found for {ticker}. Skipping.")
                 continue
 
-            if exchange == "LSE":
-                current_price_native = current_price_raw / 100.0
-            else:
-                current_price_native = current_price_raw
-
+            current_price_native = current_price_raw / 100.0 if exchange == "LSE" else current_price_raw
             fx_rate = get_fx_rate_to_gbp(currency)
             current_price_gbp = current_price_native * fx_rate
-
             value_gbp = current_price_gbp * qty
             cost_gbp = buy_price_gbp * qty
-
             returns = (current_price_gbp - buy_price_gbp) / buy_price_gbp * 100 if buy_price_gbp > 0 else 0
-
             pe_ratio = info.get('trailingPE', None)
             analyst_rating_raw = info.get('recommendationKey', 'N/A')
             rating_map = {
@@ -169,18 +155,13 @@ if len(shares) != len(tickers) or len(buy_prices_gbp) != len(tickers):
 
             total_value_gbp += value_gbp
             total_cost_gbp += cost_gbp
-
-            if sector not in sector_allocation:
-                sector_allocation[sector] = value_gbp
-            else:
-                sector_allocation[sector] += value_gbp
+            sector_allocation[sector] = sector_allocation.get(sector, 0) + value_gbp
 
         except Exception as e:
             st.warning(f"Failed to fetch data for {ticker}: {e}")
 
     if portfolio_data:
         df = pd.DataFrame(portfolio_data)
-
         df_display = df.copy()
         df_display["Buy Price (GBP)"] = df_display["Buy Price (GBP)"].map("£{:.2f}".format)
         df_display["Current Price (native)"] = df_display["Current Price (native)"].map("${:.2f}".format)
