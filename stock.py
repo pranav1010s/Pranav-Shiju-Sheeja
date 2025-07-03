@@ -61,12 +61,15 @@ if selected_portfolio:
         st.warning("Failed to load portfolio.")
         portfolio_data = {}
 
-    # Editable table with correct column types
+    # Ensure correct data types and initialize empty row
     df_preview = pd.DataFrame({
         "Ticker": portfolio_data.get("tickers", []),
         "Shares": portfolio_data.get("shares", []),
         "Buy Price": portfolio_data.get("buy_prices", [])
     })
+
+    # Add an empty row for new input
+    df_preview = pd.concat([df_preview, pd.DataFrame([{"Ticker": "", "Shares": 0.0, "Buy Price": 0.0}])], ignore_index=True)
 
     edited_df = st.data_editor(
         df_preview,
@@ -76,8 +79,16 @@ if selected_portfolio:
             "Shares": st.column_config.NumberColumn("Shares"),
             "Buy Price": st.column_config.NumberColumn("Buy Price")
         },
-        use_container_width=True
+        use_container_width=True,
+        key="portfolio_editor"
     )
+
+    # Option to delete selected rows
+    st.markdown("### 🗑️ Delete Rows")
+    rows_to_delete = st.multiselect("Select rows to delete (by index)", options=edited_df.index.tolist())
+    if st.button("Delete Selected Rows"):
+        edited_df = edited_df.drop(index=rows_to_delete).reset_index(drop=True)
+        st.experimental_rerun()
 else:
     edited_df = pd.DataFrame(columns=["Ticker", "Shares", "Buy Price"])
 
@@ -200,3 +211,4 @@ if 'edited_df' in locals() and not edited_df.empty:
             })
             fig = px.pie(sector_df, names='Sector', values='Value', title='Sector Allocation')
             st.plotly_chart(fig)
+
