@@ -90,15 +90,17 @@ if st.button("💾 Save Portfolio") and selected_portfolio:
     except Exception as e:
         st.error(f"Error saving portfolio: {e}")
 
-# Portfolio Analysis
-if not edited_df.empty:
-        tickers = edited_df["Ticker"].dropna().astype(str).str.upper().tolist()
-        shares = edited_df["Shares"].dropna().astype(float).tolist()
-        buy_prices_gbp = edited_df["Buy Price"].dropna().astype(float).tolist()
+if 'edited_df' in locals() and not edited_df.empty:
+    tickers = edited_df["Ticker"].dropna().astype(str).str.upper().tolist()
+    shares = edited_df["Shares"].dropna().astype(float).tolist()
+    buy_prices_gbp = edited_df["Buy Price"].dropna().astype(float).tolist()
 
     if len(shares) != len(tickers) or len(buy_prices_gbp) != len(tickers):
         st.error("The number of shares and buy prices must match the number of tickers.")
         st.stop()
+else:
+    st.warning("No data available. Please upload or input your portfolio.")
+
 
     portfolio_data = []
     total_value_gbp = 0
