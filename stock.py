@@ -9,11 +9,9 @@ st.set_page_config(page_title="Portfolio Tracker", layout="wide")
 st.title("📈 Personal Share Portfolio Tracker")
 st.markdown("### Created by Pranav")
 
-# Directory to store portfolios
 PORTFOLIO_DIR = "portfolios"
 os.makedirs(PORTFOLIO_DIR, exist_ok=True)
 
-# Helper: get FX rate to GBP
 def get_fx_rate_to_gbp(from_currency):
     if from_currency == "GBP":
         return 1.0
@@ -26,7 +24,6 @@ def get_fx_rate_to_gbp(from_currency):
     except Exception:
         return 1.0
 
-# Sidebar: Portfolio Manager
 st.sidebar.header("📁 Portfolio Manager")
 
 def get_portfolio_names():
@@ -51,7 +48,6 @@ if selected_portfolio:
         st.success(f"Portfolio '{selected_portfolio}' deleted.")
         st.experimental_rerun()
 
-# Load selected portfolio data
 portfolio_data = {}
 if selected_portfolio:
     try:
@@ -62,14 +58,12 @@ if selected_portfolio:
         st.warning("Failed to load portfolio.")
         portfolio_data = {}
 
-    # Ensure correct data types and initialize empty row
     df_preview = pd.DataFrame({
         "Ticker": portfolio_data.get("tickers", []),
         "Shares": portfolio_data.get("shares", []),
         "Buy Price": portfolio_data.get("buy_prices", [])
     })
 
-    # Add an empty row for new input
     df_preview = pd.concat([df_preview, pd.DataFrame([{"Ticker": "", "Shares": 0.0, "Buy Price": 0.0}])], ignore_index=True)
 
     edited_df = st.data_editor(
@@ -84,16 +78,6 @@ if selected_portfolio:
         key="portfolio_editor"
     )
 
-    # Option to delete selected rows
-    #st.markdown("### 🗑️ Delete Rows")
-    #rows_to_delete = st.multiselect("Select rows to delete (by index)", options=edited_df.index.tolist())
-    #if st.button("Delete Selected Rows"):
-     #   edited_df = edited_df.drop(index=rows_to_delete).reset_index(drop=True)
-      #  st.experimental_rerun()
-#else:
- #   edited_df = pd.DataFrame(columns=["Ticker", "Shares", "Buy Price"])
-
-# Save portfolio
 if st.button("💾 Save Portfolio") and selected_portfolio:
     try:
         edited_df = edited_df.dropna(subset=["Ticker", "Shares", "Buy Price"])
@@ -114,7 +98,6 @@ if st.button("💾 Save Portfolio") and selected_portfolio:
     except Exception as e:
         st.error(f"Error saving portfolio: {e}")
 
-# Portfolio analysis
 if 'edited_df' in locals() and not edited_df.empty:
     edited_df = edited_df.dropna(subset=["Ticker", "Shares", "Buy Price"])
     tickers = edited_df["Ticker"].astype(str).str.upper().tolist()
@@ -138,19 +121,10 @@ if 'edited_df' in locals() and not edited_df.empty:
             exchange = info.get('exchange', '')
             sector = info.get('sector', 'Unknown')
             dividend_yield = info.get('dividendYield', 0.0)
-            
-         # Get 1-year historical data
-        hist = yf.Ticker(ticker).history(period="1y")
-        if hist.empty or "Close" not in hist:
-            high_52wk = low_52wk = avg_52wk = "N/A"
-        else:
-            high_52wk = hist["Close"].max()
-            low_52wk = hist["Close"].min()
-            avg_52wk = hist["Close"].mean()
 
-        if current_price_raw is None:
-            st.warning(f"No current price found for {ticker}. Skipping.")
-            continue
+            if current_price_raw is None:
+                st.warning(f"No current price found for {ticker}. Skipping.")
+                continue
 
             current_price_native = current_price_raw / 100.0 if exchange == "LSE" else current_price_raw
             fx_rate = get_fx_rate_to_gbp(currency)
@@ -169,15 +143,15 @@ if 'edited_df' in locals() and not edited_df.empty:
                 None: 'N/A'
             }
             analyst_rating = rating_map.get(analyst_rating_raw, 'N/A')
-            
-            # Get 1-year historical data
+
+            # 52-week stats
             hist = yf.Ticker(ticker).history(period="1y")
-            if hist.empty:
-                st.warning(f"No historical data for {ticker}. Skipping 52-week stats.")
-                continue
-            high_52wk = hist["Close"].max()
-            low_52wk = hist["Close"].min()
-            avg_52wk = hist["Close"].mean()
+            if hist.empty or "Close" not in hist:
+                high_52wk = low_52wk = avg_52wk = "N/A"
+            else:
+                high_52wk = hist["Close"].max()
+                low_52wk = hist["Close"].min()
+                avg_52wk = hist["Close"].mean()
 
             portfolio_data.append({
                 "Ticker": ticker,
@@ -191,11 +165,11 @@ if 'edited_df' in locals() and not edited_df.empty:
                 "Return (%)": returns,
                 "P/E Ratio": pe_ratio if pe_ratio is not None else "N/A",
                 "Analyst Rating": analyst_rating,
+                "Sector": sector,
+                "Dividend Yield (%)": dividend_yield * 100 if dividend_yield else 0.0,
                 "52W High": high_52wk,
                 "52W Low": low_52wk,
-                "52W Avg": avg_52wk,
-                "Sector": sector,
-                "Dividend Yield (%)": dividend_yield * 100 if dividend_yield else 0.0
+                "52W Avg": avg_52wk
             })
 
             total_value_gbp += value_gbp
@@ -220,8 +194,6 @@ if 'edited_df' in locals() and not edited_df.empty:
         df_display["52W Low"] = df_display["52W Low"].apply(lambda x: f"£{x:.2f}" if isinstance(x, (float, int)) else x)
         df_display["52W Avg"] = df_display["52W Avg"].apply(lambda x: f"£{x:.2f}" if isinstance(x, (float, int)) else x)
 
-
-
         st.subheader("📊 Portfolio Summary")
         st.dataframe(df_display)
 
@@ -238,4 +210,5 @@ if 'edited_df' in locals() and not edited_df.empty:
             })
             fig = px.pie(sector_df, names='Sector', values='Value', title='Sector Allocation')
             st.plotly_chart(fig)
+
 
