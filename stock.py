@@ -107,16 +107,16 @@ else:
     total_cost_gbp = 0
     sector_allocation = {}
 
-    for ticker, qty, buy_price_gbp in zip(ticker, shares, buy_prices_gbp):
-        try:
-            stock = yf.Ticker(ticker)
-            info = stock.info
+    for ticker, qty, buy_price_gbp in zip(tickers, shares, buy_prices_gbp):
+    try:
+        stock = yf.Ticker(ticker)
+        info = stock.info
 
-            current_price_raw = info.get('regularMarketPrice')
-            currency = info.get('currency', 'GBP')
-            exchange = info.get('exchange', '')
-            sector = info.get('sector', 'Unknown')
-            dividend_yield = info.get('dividendYield', 0.0)
+        current_price_raw = info.get('regularMarketPrice')
+        currency = info.get('currency', 'GBP')
+        exchange = info.get('exchange', '')
+        sector = info.get('sector', 'Unknown')
+        dividend_yield = info.get('dividendYield', 0.0)
 
             if current_price_raw is None:
                 st.warning(f"No current price found for {ticker}. Skipping.")
