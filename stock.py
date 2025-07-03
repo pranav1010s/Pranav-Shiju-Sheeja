@@ -141,12 +141,12 @@ if 'edited_df' in locals() and not edited_df.empty:
             
             # Get 1-year historical data
            hist = yf.Ticker(ticker).history(period="1y")
-           if hist.empty or "Close" not in hist:
-                high_52wk = low_52wk = avg_52wk = "N/A"
-           else:
-               high_52wk = hist["Close"].max()
-               low_52wk = hist["Close"].min()
-               avg_52wk = hist["Close"].mean()
+               if hist.empty or "Close" not in hist:
+                    high_52wk = low_52wk = avg_52wk = "N/A"
+               else:
+                   high_52wk = hist["Close"].max()
+                   low_52wk = hist["Close"].min()
+                   avg_52wk = hist["Close"].mean()
 
 
 
