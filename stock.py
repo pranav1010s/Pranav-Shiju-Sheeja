@@ -107,7 +107,7 @@ else:
     total_cost_gbp = 0
     sector_allocation = {}
 
-    for ticker, qty, buy_price_gbp in zip(tickers, shares, buy_prices_gbp):
+    for ticker, qty, buy_price_gbp in zip(ticker, shares, buy_prices_gbp):
         try:
             stock = yf.Ticker(ticker)
             info = stock.info
