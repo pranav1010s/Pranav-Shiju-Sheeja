@@ -107,10 +107,16 @@ else:
     total_cost_gbp = 0
     sector_allocation = {}
 
-    for ticker, qty, buy_price_gbp in zip(tickers, shares, buy_prices_gbp):
-        try:
-            stock = yf.Ticker(ticker)
-            info = stock.info
+    
+if 'edited_df' in locals() and not edited_df.empty:
+    tickers = edited_df["Ticker"].dropna().astype(str).str.upper().tolist()
+    shares = edited_df["Shares"].dropna().astype(float).tolist()
+    buy_prices_gbp = edited_df["Buy Price"].dropna().astype(float).tolist()
+
+    if len(shares) != len(tickers) or len(buy_prices_gbp) != len(tickers):
+        st.error("The number of shares and buy prices must match the number of tickers.")
+        st.stop()
+
     
             current_price_raw = info.get('regularMarketPrice')
             currency = info.get('currency', 'GBP')
