@@ -189,9 +189,9 @@ if 'edited_df' in locals() and not edited_df.empty:
         df_display["Cost Basis (GBP)"] = df_display["Cost Basis (GBP)"].map("£{:.2f}".format)
         df_display["Return (%)"] = df_display["Return (%)"].map("{:.2f}%".format)
         df_display["P/E Ratio"] = df_display["P/E Ratio"].apply(lambda x: f"{x:.2f}" if isinstance(x, (float, int)) else x)
-        df_display["Dividend Yield (%)"] = df_display["Dividend Yield (%)"].map("{:.2f}%".format)
-        df_display["52W High"] = df_display["52W High"].apply(lambda x: f"£{x:.2f}" if isinstance(x, (float, int)) else x)
-        df_display["52W Low"] = df_display["52W Low"].apply(lambda x: f"£{x:.2f}" if isinstance(x, (float, int)) else x)
+        #df_display["Dividend Yield (%)"] = df_display["Dividend Yield (%)"].map("{:.2f}%".format)
+        #df_display["52W High"] = df_display["52W High"].apply(lambda x: f"£{x:.2f}" if isinstance(x, (float, int)) else x)
+        #df_display["52W Low"] = df_display["52W Low"].apply(lambda x: f"£{x:.2f}" if isinstance(x, (float, int)) else x)
         df_display["52W Avg"] = df_display["52W Avg"].apply(lambda x: f"£{x:.2f}" if isinstance(x, (float, int)) else x)
 
         st.subheader("📊 Portfolio Summary")
