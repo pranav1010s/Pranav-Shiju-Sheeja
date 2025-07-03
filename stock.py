@@ -1,10 +1,17 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
+import os
+import json
 
-st.title("Personal Share Portfolio Tracker")
+st.set_page_config(page_title="Portfolio Tracker", layout="wide")
+st.title("📈 Personal Share Portfolio Tracker")
 
-# Helper: get fx rate from any currency to GBP
+# Directory to store portfolios
+PORTFOLIO_DIR = "portfolios"
+os.makedirs(PORTFOLIO_DIR, exist_ok=True)
+
+# Helper: get FX rate to GBP
 def get_fx_rate_to_gbp(from_currency):
     if from_currency == "GBP":
         return 1.0
@@ -17,21 +24,77 @@ def get_fx_rate_to_gbp(from_currency):
     except Exception:
         return 1.0
 
+# Sidebar: Portfolio Manager
+st.sidebar.header("📁 Portfolio Manager")
+
+def get_portfolio_names():
+    return [f.replace(".json", "") for f in os.listdir(PORTFOLIO_DIR) if f.endswith(".json")]
+
+portfolio_names = get_portfolio_names()
+selected_portfolio = st.sidebar.selectbox("Select Portfolio", [""] + portfolio_names)
+new_portfolio_name = st.sidebar.text_input("Create New Portfolio")
+
+if st.sidebar.button("Create Portfolio") and new_portfolio_name:
+    path = os.path.join(PORTFOLIO_DIR, f"{new_portfolio_name}.json")
+    if not os.path.exists(path):
+        with open(path, "w") as f:
+            json.dump({}, f)
+        st.success(f"Portfolio '{new_portfolio_name}' created.")
+    else:
+        st.warning("Portfolio already exists.")
+
+if selected_portfolio:
+    if st.sidebar.button("Delete Portfolio"):
+        os.remove(os.path.join(PORTFOLIO_DIR, f"{selected_portfolio}.json"))
+        st.success(f"Portfolio '{selected_portfolio}' deleted.")
+        st.experimental_rerun()
+
+# Load selected portfolio data
+portfolio_data = {}
+if selected_portfolio:
+    try:
+        with open(os.path.join(PORTFOLIO_DIR, f"{selected_portfolio}.json")) as f:
+            portfolio_data = json.load(f)
+    except Exception:
+        st.warning("Failed to load portfolio.")
+
+# Input fields
 tickers_input = st.text_input(
     "Enter stock/ETF ticker symbols separated by commas (e.g. AAPL, MSFT, SHEL.L, 0700.HK)",
-    value="AAPL, MSFT, SHEL.L"
+    value=",".join(portfolio_data.get("tickers", []))
 )
 
 shares_input = st.text_area(
     "Enter number of shares for each ticker (decimals allowed), comma-separated, in the same order (e.g. 10, 5.5, 20.25)",
-    value="10, 5, 20"
+    value=",".join(map(str, portfolio_data.get("shares", [])))
 )
 
 buy_prices_input = st.text_area(
-    "Enter your initial buy price for each ticker in GBP,comma-separated, in the same order (e.g. 120, 210, 25)",
-    value="120, 210, 25"
+    "Enter your initial buy price for each ticker in GBP, comma-separated, in the same order (e.g. 120, 210, 25)",
+    value=",".join(map(str, portfolio_data.get("buy_prices", [])))
 )
 
+# Save portfolio
+if st.button("💾 Save Portfolio") and selected_portfolio:
+    try:
+        tickers = [t.strip().upper() for t in tickers_input.split(",")]
+        shares = [float(s.strip()) for s in shares_input.split(",")]
+        buy_prices = [float(p.strip()) for p in buy_prices_input.split(",")]
+        if len(tickers) == len(shares) == len(buy_prices):
+            portfolio_data = {
+                "tickers": tickers,
+                "shares": shares,
+                "buy_prices": buy_prices
+            }
+            with open(os.path.join(PORTFOLIO_DIR, f"{selected_portfolio}.json"), "w") as f:
+                json.dump(portfolio_data, f)
+            st.success(f"Portfolio '{selected_portfolio}' saved.")
+        else:
+            st.error("Mismatch in number of tickers, shares, or buy prices.")
+    except Exception as e:
+        st.error(f"Error saving portfolio: {e}")
+
+# Portfolio Analysis
 if tickers_input:
     tickers = [t.strip().upper() for t in tickers_input.split(",")]
 
@@ -68,13 +131,11 @@ if tickers_input:
                 st.warning(f"No current price found for {ticker}. Skipping.")
                 continue
 
-            # Convert LSE pence to pounds
             if exchange == "LSE":
                 current_price_native = current_price_raw / 100.0
             else:
                 current_price_native = current_price_raw
 
-            # Convert current price to GBP
             fx_rate = get_fx_rate_to_gbp(currency)
             current_price_gbp = current_price_native * fx_rate
 
@@ -83,7 +144,6 @@ if tickers_input:
 
             returns = (current_price_gbp - buy_price_gbp) / buy_price_gbp * 100 if buy_price_gbp > 0 else 0
 
-            # Analyst rating & PE ratio
             pe_ratio = info.get('trailingPE', None)
             analyst_rating_raw = info.get('recommendationKey', 'N/A')
             rating_map = {
@@ -128,15 +188,15 @@ if tickers_input:
         df_display["Return (%)"] = df_display["Return (%)"].map("{:.2f}%".format)
         df_display["P/E Ratio"] = df_display["P/E Ratio"].apply(lambda x: f"{x:.2f}" if isinstance(x, (float, int)) else x)
 
-        st.subheader("Portfolio Summary")
+        st.subheader("📊 Portfolio Summary")
         st.dataframe(df_display)
 
         total_return = (total_value_gbp - total_cost_gbp) / total_cost_gbp * 100 if total_cost_gbp > 0 else 0
-        st.write(f"### Total portfolio value (GBP): £{total_value_gbp:.2f}")
-        st.write(f"### Total cost basis (GBP): £{total_cost_gbp:.2f}")
-        st.write(f"### Overall portfolio return: {total_return:.2f}%")
+        st.write(f"### 💰 Total portfolio value (GBP): £{total_value_gbp:.2f}")
+        st.write(f"### 🧾 Total cost basis (GBP): £{total_cost_gbp:.2f}")
+        st.write(f"### 📈 Overall portfolio return: {total_return:.2f}%")
 
-        st.subheader("Portfolio Combined Price Chart (Weighted Close Price in GBP, 1 Month)")
+        st.subheader("📉 Portfolio Combined Price Chart (Weighted Close Price in GBP, 1 Month)")
 
         combined_df = pd.DataFrame()
         for ticker, qty in zip(tickers, shares):
